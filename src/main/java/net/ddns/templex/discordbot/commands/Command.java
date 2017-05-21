@@ -83,7 +83,7 @@ public enum Command {
 			boolean success = true;
 			EmbedBuilder emb;
 			try (Socket socket = new Socket()) {
-				socket.connect(new InetSocketAddress("templex.ddns.net", 25565), 10000);
+				socket.connect(new InetSocketAddress("localhost", 25565), 10000);
 				emb = generateEmbedBuilder("Status:", "Templex is online!", null, null, null, Color.GREEN);
 			} catch (IOException e) {
 				success = false;
