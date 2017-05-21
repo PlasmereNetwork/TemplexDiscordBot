@@ -24,7 +24,7 @@ import de.btobastian.javacord.listener.channel.ChannelChangeTopicListener;
 import de.btobastian.javacord.listener.channel.ChannelCreateListener;
 import de.btobastian.javacord.listener.channel.ChannelDeleteListener;
 import de.btobastian.javacord.listener.message.MessageCreateListener;
-import io.github.trulyfree.modular.module.Module;
+import io.github.trulyfree.modular8.module.Module;
 import net.ddns.templex.discordbot.commands.Command;
 
 /* TemplexDiscordBot: A Discord bot for the Templex Discord server.
