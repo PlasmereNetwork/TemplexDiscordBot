@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.ddns.templex</groupId>
 	<artifactId>DiscordBot</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<url>https://github.com/TemplexMC/DiscordBot</url>
 	<scm>
 		<connection>scm:git:https://github.com/TemplexMC/DiscordBot.git</connection>
@@ -91,6 +91,7 @@
 							<archive>
 								<manifest>
 									<mainClass>${discordmodularbot.main}</mainClass>
+									<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 								</manifest>
 							</archive>
 							<descriptorRefs>

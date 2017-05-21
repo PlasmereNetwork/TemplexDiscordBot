@@ -147,7 +147,7 @@ public enum Command {
 	VERSION {
 		@Override
 		public boolean execute(Message message, Bot bot) {
-			EmbedBuilder emb = generateEmbedBuilder("Version:", Bot.getVersion(), null, null, null, Color.GREEN);
+			EmbedBuilder emb = generateEmbedBuilder("Version:", Bot.class.getPackage().getImplementationVersion(), null, null, null, Color.GREEN);
 			message.reply("", emb);
 			return true;
 		}

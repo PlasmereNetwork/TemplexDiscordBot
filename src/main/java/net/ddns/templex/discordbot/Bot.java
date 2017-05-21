@@ -3,6 +3,12 @@ package net.ddns.templex.discordbot;
 import static net.ddns.templex.discordbot.Util.generateEmbedBuilder;
 
 import java.awt.Color;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import de.btobastian.javacord.DiscordAPI;
 import de.btobastian.javacord.Javacord;
@@ -46,19 +54,23 @@ import net.ddns.templex.discordbot.commands.Command;
 
 public class Bot implements Module {
 
-	private static final String version = "0.0.1-SNAPSHOT";
-
 	private static Logger logger = LoggerFactory.getLogger(Bot.class);
 
+	private final JsonParser parser;
 	private final DiscordAPI api;
+	private final String cleverBotToken;
+	private CleverBotResponse previousCBR;
 	private boolean exitOnDisconnect;
 	private ExecutorService exec;
 	private Channel headsChannel;
 	private Server templexDiscord;
 	private Calendar startTime;
 
-	public Bot(String token, boolean exitOnDisconnect) {
+	public Bot(String token, String cleverBotToken, boolean exitOnDisconnect) {
+		this.parser = new JsonParser();
 		this.api = Javacord.getApi(token, true);
+		this.cleverBotToken = cleverBotToken;
+		this.previousCBR = new CleverBotResponse(null, null);
 		this.exitOnDisconnect = exitOnDisconnect;
 	}
 
@@ -86,6 +98,7 @@ public class Bot implements Module {
 			public void onSuccess(DiscordAPI arg0) {
 				templexDiscord = api.getServerById("162683952295837696");
 				headsChannel = api.getChannelById("252217330254217217");
+				String version = getVersion();
 				EmbedBuilder emb = generateEmbedBuilder("Templex Bot",
 						"Templex Bot version " + version + " initialized.", null, null, null, Color.GREEN);
 				headsChannel.sendMessage("", emb);
@@ -105,9 +118,9 @@ public class Bot implements Module {
 	public Calendar getStartTime() {
 		return startTime;
 	}
-
-	public static String getVersion() {
-		return version;
+	
+	public String getVersion() {
+		return getClass().getPackage().getImplementationVersion();
 	}
 
 	private class GeneralizedListener implements MessageCreateListener, ChannelChangeNameListener,
@@ -171,12 +184,69 @@ public class Bot implements Module {
 					Command command = Command.getCommandFromMessage(arg1.getContent());
 					if (command != null) {
 						command.execute(arg1, Bot.this);
+					} else if (arg1.getContent().contains(api.getYourself().getName())) {
+						CleverBotResponse next = previousCBR.getNextResponse(arg1.getContent().replaceAll(api.getYourself().getName(), ""));
+						if (next.getOutput() != null) {
+							arg1.reply(next.getOutput());
+							previousCBR = next;
+						}
 					}
 					return true;
 				});
 			}
 		}
-
+	}
+	
+	private class CleverBotResponse {
+		
+		private String cs;
+		private String output;
+		
+		public CleverBotResponse(String cs, String output) {
+			this.cs = cs;
+			this.output = output;
+		}
+		
+		public String getOutput() {
+			return output;
+		}
+		
+		public CleverBotResponse getNextResponse(String input) {
+			if (cleverBotToken == null) {
+				return this;
+			}
+			StringBuilder address = new StringBuilder("https://www.cleverbot.com/getreply?key=");
+			address.append(cleverBotToken);
+			address.append("&input=");
+			try {
+				address.append(URLEncoder.encode(input, "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				logger.warn("Unable to encode input for CleverBot response!", e);
+				return new CleverBotResponse(cs, null);
+			}
+			if (cs != null) {
+				address.append("&cs=");
+				address.append(cs);
+			}
+			try {
+				URL url = new URL(address.toString());
+				URLConnection connection = url.openConnection();
+				InputStream inputStream = connection.getInputStream();
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				byte[] buffer = new byte[4096];
+		        int len;
+		        while ((len = inputStream.read(buffer)) > 0) {  
+		        	baos.write(buffer, 0, len);
+		        }
+				JsonObject responseObj = (JsonObject) parser.parse(baos.toString());
+				String cs = responseObj.get("cs").getAsString();
+				String output = responseObj.get("output").getAsString();
+				return new CleverBotResponse(cs, output);
+			} catch (Throwable e) {
+				logger.warn("Unable to fetch CleverBot response!", e);
+				return new CleverBotResponse(cs, null);
+			}
+		}
 	}
 
 }

@@ -23,13 +23,18 @@ public final class Main {
 	}
 
 	public static void main(String[] args) {
-		String token;
+		String token, cleverBotToken;
 		if (args.length == 0) {
-			token = new String(System.console().readPassword("%s", "Token: "));
+			token = new String(System.console().readPassword("%s", "Discord Token: "));
+			cleverBotToken = new String(System.console().readPassword("%s", "CleverBot Token: "));
+		} else if (args.length == 1) {
+			token = args[0];
+			cleverBotToken = "";
 		} else {
 			token = args[0];
+			cleverBotToken = args[1];
 		}
-		Bot bot = new Bot(token, true);
+		Bot bot = new Bot(token, cleverBotToken, true);
 		bot.setup();
 	}
 
