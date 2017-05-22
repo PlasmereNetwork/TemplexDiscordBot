@@ -191,7 +191,7 @@ public class Bot implements Module {
 					Command command = Command.getCommandFromMessage(arg1.getContent());
 					if (command != null) {
 						command.execute(arg1, Bot.this);
-					} else if (arg1.getContent().contains(api.getYourself().getName())) {
+					} else if (arg1.getMentions().contains(api.getYourself())) {
 						CleverBotResponse current = conversations.get(channel);
 						if (current == null) {
 							current = new CleverBotResponse(true);

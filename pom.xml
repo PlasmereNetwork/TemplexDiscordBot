@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.ddns.templex</groupId>
 	<artifactId>DiscordBot</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
-	<url>https://github.com/TemplexMC/DiscordBot</url>
+	<version>1.0.0</version>
+	<url>https://github.com/TemplexMC/TemplexDiscordBot</url>
 	<scm>
-		<connection>scm:git:https://github.com/TemplexMC/DiscordBot.git</connection>
-		<developerConnection>scm:git:https://github.com/TemplexMC/DiscordBot.git</developerConnection>
-		<url>https://github.com/TemplexMC/DiscordBot</url>
+		<connection>scm:git:https://github.com/TemplexMC/TemplexDiscordBot.git</connection>
+		<developerConnection>scm:git:https://github.com/TemplexMC/TemplexDiscordBot.git</developerConnection>
+		<url>https://github.com/TemplexMC/TemplexDiscordBot</url>
 	</scm>
 	<organization>
 		<name>TemplexMC</name>
