@@ -9,12 +9,15 @@ import java.net.Socket;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.btobastian.javacord.entities.Channel;
 import de.btobastian.javacord.entities.message.Message;
 import de.btobastian.javacord.entities.message.embed.EmbedBuilder;
+import de.btobastian.javacord.entities.permissions.Role;
 import net.ddns.templex.discordbot.Bot;
 
 /* TemplexDiscordBot: A Discord bot for the Templex Discord server.
@@ -39,7 +42,7 @@ public enum Command {
 		@Override
 		public boolean execute(Message message, Bot bot) {
 			String[] arguments = getArguments(message);
-			
+
 			if (arguments.length == 0) {
 				StringBuilder sb = new StringBuilder();
 				Command[] commands = values();
@@ -49,14 +52,15 @@ public enum Command {
 					sb.append("\n");
 				}
 				sb.append("View info about each command using `!help <command>`.");
-				EmbedBuilder emb = generateEmbedBuilder("Available Commands:", sb.toString(), null, null,
-						null, Color.GREEN);
+				EmbedBuilder emb = generateEmbedBuilder("Available Commands:", sb.toString(), null, null, null,
+						Color.GREEN);
 				message.reply("", emb);
 			} else {
 				Command targetCommand = getCommandFromMessage("!" + arguments[0]);
 				EmbedBuilder emb;
 				if (targetCommand == UNKNOWN) {
-					emb = generateEmbedBuilder("Help:", "Unknown command. List commands with `!help`", null, null, null, Color.RED);
+					emb = generateEmbedBuilder("Help:", "Unknown command. List commands with `!help`", null, null, null,
+							Color.RED);
 				} else {
 					emb = generateEmbedBuilder(targetCommand.name(), null, null, null, null, Color.GREEN);
 					emb.addField("Description:", targetCommand.getDescription(), false);
@@ -75,6 +79,77 @@ public enum Command {
 		@Override
 		public String getUsage() {
 			return COMMAND_PREFIX + "help\n" + COMMAND_PREFIX + "help <command>";
+		}
+	},
+	HUSH {
+		@Override
+		public boolean execute(Message message, Bot bot) {
+			Channel channel = message.getChannelReceiver();
+			Collection<Role> roles = message.getAuthor().getRoles(channel.getServer());
+			boolean allowed = false;
+			for (Role role : roles) {
+				if (role.getName().toLowerCase().contains("sysadmin")) {
+					allowed = true;
+					break;
+				}
+			}
+			if (!allowed) {
+				channel.sendMessage("No, you hush!");
+				return false;
+			}
+			Bot.CleverBotResponse cbr = bot.getConversations().get(channel);
+			if (cbr == null) {
+				bot.getConversations().put(channel, cbr = bot.new CleverBotResponse(false));
+			} else {
+				cbr.setAllowed(false);
+			}
+			channel.sendMessage("Okay, I'll be quiet...");
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "Turns off CleverBot responses for this room.";
+		}
+
+		@Override
+		public String getUsage() {
+			return COMMAND_PREFIX + "hush";
+		}
+	},
+	SPEAK {
+		@Override
+		public boolean execute(Message message, Bot bot) {
+			Channel channel = message.getChannelReceiver();
+			Collection<Role> roles = message.getAuthor().getRoles(channel.getServer());
+			boolean allowed = false;
+			for (Role role : roles) {
+				if (role.getName().toLowerCase().contains("sysadmin")) {
+					allowed = true;
+					break;
+				}
+			}
+			if (!allowed) {
+				return false;
+			}
+			Bot.CleverBotResponse cbr = bot.getConversations().get(channel);
+			if (cbr == null) {
+				bot.getConversations().put(channel, cbr = bot.new CleverBotResponse(true));
+				return true;
+			}
+			cbr.setAllowed(true);
+			channel.sendMessage("You're gonna regret this.");
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "Turns on CleverBot responses for this room.";
+		}
+
+		@Override
+		public String getUsage() {
+			return COMMAND_PREFIX + "speak";
 		}
 	},
 	STATUS {
@@ -147,7 +222,8 @@ public enum Command {
 	VERSION {
 		@Override
 		public boolean execute(Message message, Bot bot) {
-			EmbedBuilder emb = generateEmbedBuilder("Version:", Bot.class.getPackage().getImplementationVersion(), null, null, null, Color.GREEN);
+			EmbedBuilder emb = generateEmbedBuilder("Version:", Bot.class.getPackage().getImplementationVersion(), null,
+					null, null, Color.GREEN);
 			message.reply("", emb);
 			return true;
 		}

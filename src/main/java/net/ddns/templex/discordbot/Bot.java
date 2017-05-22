@@ -10,6 +10,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -55,11 +56,12 @@ import net.ddns.templex.discordbot.commands.Command;
 public class Bot implements Module {
 
 	private static Logger logger = LoggerFactory.getLogger(Bot.class);
+	private static final String gameString = "with minds";
 
 	private final JsonParser parser;
 	private final DiscordAPI api;
 	private final String cleverBotToken;
-	private CleverBotResponse previousCBR;
+	private final HashMap<Channel, CleverBotResponse> conversations;
 	private boolean exitOnDisconnect;
 	private ExecutorService exec;
 	private Channel headsChannel;
@@ -70,7 +72,7 @@ public class Bot implements Module {
 		this.parser = new JsonParser();
 		this.api = Javacord.getApi(token, true);
 		this.cleverBotToken = cleverBotToken;
-		this.previousCBR = new CleverBotResponse(null, null);
+		this.conversations = new HashMap<>();
 		this.exitOnDisconnect = exitOnDisconnect;
 	}
 
@@ -103,6 +105,7 @@ public class Bot implements Module {
 						"Templex Bot version " + version + " initialized.", null, null, null, Color.GREEN);
 				headsChannel.sendMessage("", emb);
 				api.registerListener(new GeneralizedListener());
+				api.setGame(gameString);
 				logger.info("Templex bot version " + version + " initialized.");
 			}
 
@@ -118,7 +121,11 @@ public class Bot implements Module {
 	public Calendar getStartTime() {
 		return startTime;
 	}
-	
+
+	public HashMap<Channel, CleverBotResponse> getConversations() {
+		return conversations;
+	}
+
 	public String getVersion() {
 		return getClass().getPackage().getImplementationVersion();
 	}
@@ -179,16 +186,22 @@ public class Bot implements Module {
 		@Override
 		public void onMessageCreate(DiscordAPI arg0, Message arg1) {
 			Channel channel = arg1.getChannelReceiver();
-			if (channel == null || templexDiscord.equals(arg1.getChannelReceiver().getServer())) {
+			if (channel != null && templexDiscord.equals(channel.getServer())) {
 				exec.submit(() -> {
 					Command command = Command.getCommandFromMessage(arg1.getContent());
 					if (command != null) {
 						command.execute(arg1, Bot.this);
 					} else if (arg1.getContent().contains(api.getYourself().getName())) {
-						CleverBotResponse next = previousCBR.getNextResponse(arg1.getContent().replaceAll(api.getYourself().getName(), ""));
-						if (next.getOutput() != null) {
-							arg1.reply(next.getOutput());
-							previousCBR = next;
+						CleverBotResponse current = conversations.get(channel);
+						if (current == null) {
+							current = new CleverBotResponse(true);
+							conversations.put(channel, current);
+						}
+						if (current.isAllowed()) {
+							current.getNextResponse(arg1.getContent().replaceAll(api.getYourself().getName(), ""));
+							if (current.getOutput() != null) {
+								arg1.reply(current.getOutput());
+							}
 						}
 					}
 					return true;
@@ -196,24 +209,34 @@ public class Bot implements Module {
 			}
 		}
 	}
-	
-	private class CleverBotResponse {
-		
+
+	public class CleverBotResponse {
+
+		private boolean allowed;
 		private String cs;
 		private String output;
-		
-		public CleverBotResponse(String cs, String output) {
-			this.cs = cs;
-			this.output = output;
+
+		public CleverBotResponse(boolean allowed) {
+			this.setAllowed(allowed);
+			this.cs = null;
+			this.output = null;
 		}
-		
+
 		public String getOutput() {
 			return output;
 		}
-		
-		public CleverBotResponse getNextResponse(String input) {
+
+		public boolean isAllowed() {
+			return allowed;
+		}
+
+		public void setAllowed(boolean allowed) {
+			this.allowed = allowed;
+		}
+
+		public void getNextResponse(String input) {
 			if (cleverBotToken == null) {
-				return this;
+				return;
 			}
 			StringBuilder address = new StringBuilder("https://www.cleverbot.com/getreply?key=");
 			address.append(cleverBotToken);
@@ -222,7 +245,7 @@ public class Bot implements Module {
 				address.append(URLEncoder.encode(input, "UTF-8"));
 			} catch (UnsupportedEncodingException e) {
 				logger.warn("Unable to encode input for CleverBot response!", e);
-				return new CleverBotResponse(cs, null);
+				this.output = null;
 			}
 			if (cs != null) {
 				address.append("&cs=");
@@ -234,17 +257,16 @@ public class Bot implements Module {
 				InputStream inputStream = connection.getInputStream();
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				byte[] buffer = new byte[4096];
-		        int len;
-		        while ((len = inputStream.read(buffer)) > 0) {  
-		        	baos.write(buffer, 0, len);
-		        }
+				int len;
+				while ((len = inputStream.read(buffer)) > 0) {
+					baos.write(buffer, 0, len);
+				}
 				JsonObject responseObj = (JsonObject) parser.parse(baos.toString());
-				String cs = responseObj.get("cs").getAsString();
-				String output = responseObj.get("output").getAsString();
-				return new CleverBotResponse(cs, output);
+				this.cs = responseObj.get("cs").getAsString();
+				this.output = responseObj.get("output").getAsString();
 			} catch (Throwable e) {
 				logger.warn("Unable to fetch CleverBot response!", e);
-				return new CleverBotResponse(cs, null);
+				this.output = null;
 			}
 		}
 	}
