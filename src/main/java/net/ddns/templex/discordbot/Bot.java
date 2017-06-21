@@ -33,7 +33,6 @@ import de.btobastian.javacord.listener.channel.ChannelChangeTopicListener;
 import de.btobastian.javacord.listener.channel.ChannelCreateListener;
 import de.btobastian.javacord.listener.channel.ChannelDeleteListener;
 import de.btobastian.javacord.listener.message.MessageCreateListener;
-import io.github.trulyfree.modular8.module.Module;
 import net.ddns.templex.discordbot.commands.Command;
 
 /* TemplexDiscordBot: A Discord bot for the Templex Discord server.
@@ -53,7 +52,7 @@ import net.ddns.templex.discordbot.commands.Command;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-public class Bot implements Module {
+public class Bot {
 
 	private static Logger logger = LoggerFactory.getLogger(Bot.class);
 	private static final String gameString = "with minds";
@@ -76,7 +75,6 @@ public class Bot implements Module {
 		this.exitOnDisconnect = exitOnDisconnect;
 	}
 
-	@Override
 	public boolean destroy() {
 		api.disconnect();
 		headsChannel = null;
@@ -86,12 +84,10 @@ public class Bot implements Module {
 		return true;
 	}
 
-	@Override
 	public boolean isReady() {
 		return exec != null && api != null && headsChannel != null;
 	}
 
-	@Override
 	public boolean setup() {
 		exec = Executors.newCachedThreadPool();
 		startTime = Calendar.getInstance();
@@ -99,7 +95,7 @@ public class Bot implements Module {
 			@Override
 			public void onSuccess(DiscordAPI arg0) {
 				templexDiscord = api.getServerById("162683952295837696");
-				headsChannel = api.getChannelById("252217330254217217");
+				headsChannel = api.getChannelById("327123182190460928");
 				String version = getVersion();
 				EmbedBuilder emb = generateEmbedBuilder("Templex Bot",
 						"Templex Bot version " + version + " initialized.", null, null, null, Color.GREEN);
